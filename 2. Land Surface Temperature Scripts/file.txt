@@ -1,1 +1,6 @@
+The folder contains all the scripts for LST Mosaicking, generating the LST Difference images, generating the LST Combination images, and extracting the LST from the LC - creating transition matrix.
 
+2.1. MODIS LST Mosaicking Script (Pre-Processing):
+2.2. MODIS LST Difference Script:
+2.3 MODIS LST Combination Script:
+2.4 LST-LC Transition Matrix Script:
