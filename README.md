@@ -53,11 +53,22 @@ The folder contains all the scripts used to extract the ESA CCI LC masks for dis
 https://github.com/lerren144/UZH-Master-Thesis/tree/329ce443f9a1fa1b4ee050b5693a6c5adce48af3/5.%20ESA%20CCI%20Land%20Cover%20Scripts
 
 5.1. ESA CCI Land Cover Disturbed and Undisturbed Analysis (Extraction of Masks)
+https://github.com/lerren144/UZH-Master-Thesis/blob/722d18aca23de02e8658ac09d0dc3ed51452de64/5.%20ESA%20CCI%20Land%20Cover%20Scripts/5.1.%20%20ESACCI_LandCover_Analysis.ipynb
+
 5.2. ESA CCI Land Cover Conversion from NETCDF4 to GeoTIFF (Pre-Processing)
+https://github.com/lerren144/UZH-Master-Thesis/blob/722d18aca23de02e8658ac09d0dc3ed51452de64/5.%20ESA%20CCI%20Land%20Cover%20Scripts/5.2.%20Conversion_ESACCILC_Geotiff.py
+
 5.3. ESA CCI LC Before and After Bar Chart (Graph)
+https://github.com/lerren144/UZH-Master-Thesis/blob/722d18aca23de02e8658ac09d0dc3ed51452de64/5.%20ESA%20CCI%20Land%20Cover%20Scripts/5.3.%20ESACCI_LC_Before_After_BarChart_22x22.py
+
 5.4. ESA CCI LC Transition Matrix (Table)
+https://github.com/lerren144/UZH-Master-Thesis/blob/722d18aca23de02e8658ac09d0dc3ed51452de64/5.%20ESA%20CCI%20Land%20Cover%20Scripts/5.4.%20ESACCI_LC_Transition_Matrix_22x22.ipynb
+
 5.5. ESA CCI LC-LST Bubble Plot (Graph)
+https://github.com/lerren144/UZH-Master-Thesis/blob/722d18aca23de02e8658ac09d0dc3ed51452de64/5.%20ESA%20CCI%20Land%20Cover%20Scripts/5.5.%20ESACCI_LC_LST_BubblePlot_22x22.py
+
 5.6. ESA CCI LC-LST Sankey Diagram (Graph)
+https://github.com/lerren144/UZH-Master-Thesis/blob/722d18aca23de02e8658ac09d0dc3ed51452de64/5.%20ESA%20CCI%20Land%20Cover%20Scripts/5.6.%20Sankey_Diagram_Copernicus_22x22.ipynb
 
 6. MODIS Land Cover Scripts:
 The folder contains all the scripts used to extract the MODIS LC masks for disturbed and undisturbed areas, preprocess the LC masks, and generate various visualizations, including charts, transition matrices, bubble plots, and Sankey diagrams. These scripts play a crucial role in analyzing and visualizing land cover changes effectively.
@@ -66,8 +77,18 @@ https://github.com/lerren144/UZH-Master-Thesis/tree/329ce443f9a1fa1b4ee050b5693a
 6.1. MODIS Land Cover Disturbed and Undisturbed Analysis (Extraction of Masks)
 https://colab.research.google.com/drive/1ANxziJ66DZ1oyW0K0LhR4e_a3DXLcO8h?usp=sharing
 https://github.com/lerren144/UZH-Master-Thesis/tree/329ce443f9a1fa1b4ee050b5693a6c5adce48af3/6.%20MODIS%20Land%20Cover%20Scripts/6.1.%20MODIS%20Land%20Cover%20Disturbed%20and%20Undisturbed%20Analysis%20(Extraction%20of%20Masks)
+
 6.2. MODIS LC Mosaicking Script (Pre-Processing)
+https://github.com/lerren144/UZH-Master-Thesis/blob/722d18aca23de02e8658ac09d0dc3ed51452de64/6.%20MODIS%20Land%20Cover%20Scripts/6.2.%20MODIS_LC_Mosaic_Script.py
+
 6.3. MODIS LC Before and After Bar Chart (Graph)
+https://github.com/lerren144/UZH-Master-Thesis/blob/722d18aca23de02e8658ac09d0dc3ed51452de64/6.%20MODIS%20Land%20Cover%20Scripts/6.3.%20MODIS_LC_Before_After_BarChart_10x10.py
+
 6.4. MODIS LC Transition Matrix (Table)
+https://github.com/lerren144/UZH-Master-Thesis/blob/722d18aca23de02e8658ac09d0dc3ed51452de64/6.%20MODIS%20Land%20Cover%20Scripts/6.4.%20MODIS_LC_Transtion_Matrix_10x10.ipynb
+
 6.5. MODIS LC-LST Bubble Plot (Graph)
+https://github.com/lerren144/UZH-Master-Thesis/blob/722d18aca23de02e8658ac09d0dc3ed51452de64/6.%20MODIS%20Land%20Cover%20Scripts/6.5.%20MODIS_LC_LST_BubblePlot_10x10.py
+
 6.6. MODIS LC-LST Sankey Diagram (Graph)
+https://github.com/lerren144/UZH-Master-Thesis/blob/722d18aca23de02e8658ac09d0dc3ed51452de64/6.%20MODIS%20Land%20Cover%20Scripts/6.6.%20Sankey_Diagram_MODIS_10x10.ipynb
