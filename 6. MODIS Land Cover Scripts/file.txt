@@ -1,1 +1,8 @@
+The folder contains all the scripts used to extract the MODIS LC masks for disturbed and undisturbed areas, preprocess the LC masks, and generate various visualizations, including charts, transition matrices, bubble plots, and Sankey diagrams. These scripts play a crucial role in analyzing and visualizing land cover changes effectively.
 
+6.1. MODIS Land Cover Disturbed and Undisturbed Analysis (Extraction of Masks)
+6.2. MODIS LC Mosaicking Script (Pre-Processing)
+6.3. MODIS LC Before and After Bar Chart (Graph)
+6.4. MODIS LC Transition Matrix (Table)
+6.5. MODIS LC-LST Bubble Plot (Graph)
+6.6. MODIS LC-LST Sankey Diagram (Graph)
