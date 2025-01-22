@@ -1,4 +1,4 @@
-All scripts in text file format was extracted from the google earth engine:
+All the scripts provided in text file format were extracted directly from Google Earth Engine. These scripts contain the code used for processing the harmonics and extracting the MODIS LST Products.
 
 1. MODIS LST and Visualization:
 
