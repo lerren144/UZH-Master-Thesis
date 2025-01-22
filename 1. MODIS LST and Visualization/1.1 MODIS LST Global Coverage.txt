@@ -1,1 +1,380 @@
+// Script to calculate LST trends based on MODIS time series //
+
+//////////////////////////////////////////////////////////////
+var i = 10                    // select the i-th image of the collection for display
+var harmonics = 1;            // increase number of harmonics for a better fit. But runs into memory issues for too many harmonics.
+
+var plot_POI = true           // plot the LST time series at the POI
+var plot_maps = true          // plot associated LST maps    
+var export_maps = true        // export associated LST maps
+
+var maxV = 0.1                // max trend slope
+var minV = -0.1               // min trend slope
+
+var VAT = 45                  // threshold to filter the viewing angle
+
+//////////////////////////////////////////////////////////////
+// TIME
+var startyear = 2000; 
+var endyear = 2020; 
+var startmonth = 1;
+var endmonth = 12;
+var startDate = ee.Date.fromYMD(startyear, startmonth, 1);
+var endDate = ee.Date.fromYMD(endyear , endmonth, 31).advance(1,'day');
+
+//////////////////////////////////////////////////////////////
+// aoi global
+var aoi = ee.Geometry.Polygon( [[-180, 84], [0, 84], [180, 84], [180,-59], [0, -59], [-180,-59]], null, false);
+
+// Display the AOI by its outline
+var aoi_outline = ee.Image().byte().paint({
+  featureCollection: aoi,
+  color: 1,
+  width: 3
+});
+Map.addLayer(aoi_outline, {palette: ['black']}, 'AOI', false)
+
+//////////////////////////////////////////////////////////////
+// POI buffered
+// draw a point or provide coordinates
+var geometry_poi = ee.Geometry.Point([6.718, 45.043]);
+var poi = geometry_poi.buffer(1e3);
+
+Map.addLayer(poi, {color: 'red'}, 'POI', false)
+
+//////////////////////////////////////////////////////////////
+// Band Names
+var mod_bands = ee.List([ 'sur_refl_b01','sur_refl_b02','sur_refl_b03','sur_refl_b04','sur_refl_b06','sur_refl_b07', 'SensorZenith'])
+var mod_band_names = ee.List(['red', 'nir', 'blue', 'green','swir1', 'swir2', 'SensorZenith'])
+
+
+var mod_LST_band = 'LST_1KM' // 'LST_Night_1km' , 'LST_Day_1km' , LST_1KM
+var mod_VA_band = 'View_Angle' // 'Night_view_angle', 'Day_view_angle' , 'View_Angle'
+
+//////////////////////////////////////////////////////////////
+// MAP
+// Map.centerObject(poi,10)
+Map.setOptions("terrain", null, ["roadmap", "satellite", "hybrid", "terrain" ])
+Map.setControlVisibility(null, null, false, false, false)
+
+//////////////////////////////////////////////////////////////
+// Vizualisation parameters
+var vizParams_nfci  = {'min': 0.05, 'max': [0.3,0.4,0.5], bands: ['swir2', 'nir', 'red']};
+var vizParams_mask  = {min:0, max:1, palette: ['000000','ffffff']};
+
+var palettes = require('users/gena/packages:palettes');
+var vizParams_LST = {min: 0, max: 1, bands: mod_LST_band, palette:palettes.cmocean.Thermal[7]};
+var vizParams_empalette = {min: 0, max: 1, bands: mod_LST_band, palette: ['000000', 'FFD700', 'F0FFFF', "000066", "00FFFF"]};
+
+var palette_Parula = ['352a87','0f5cdd','1481d6','06a4ca','2eb7a4', '87bf77', 'd1bb59', 'fec832', 'f9fb0e']; //palettes.misc.Parula;
+var palette_Magma = palettes.matplotlib.magma[7];
+var palette_vik = palettes.crameri.vik[50]//.reverse()
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// DATA
+
+var MOD_LST = ee.ImageCollection('MODIS/061/MYD21A1D') // 'MODIS/061/MOD21A1D', 'MODIS/061/MOD21A1N',  'MODIS/061/MYD21A1D', 'MODIS/061/MYD21A1N', 'MODIS/061/MOD11A1'
+                .select([mod_LST_band, mod_VA_band])
+                .filterDate(startDate, endDate);
+
+var scalingParam = 1 // 0.02 for MOD11, 1 for MOD21
+// var fnamePrefix = 'MOD21A1D_Alps_2000-2022_1000m_vat45_LSTday'
+var fnamePrefix = 'MYD21A1D_Global_2000-2020_1000m_vat45_LSTday'
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// FUNCTIONS
+
+
+// A function to mask higher viewing angles due to higher distortions
+var LSTmask = function(image) {
+  
+  var viewAngle = image.select(mod_VA_band); 
+  var mask = viewAngle.gte(VAT*(-1)).and(viewAngle.lte(VAT))
+  
+  return image.select([]).addBands(image.select(mod_LST_band).multiply(scalingParam).updateMask(mask));
+};
+
+
+// This function adds a band representing the image timestamp.
+var addTime = function(image) {
+  
+  var date = ee.Date(image.get('system:time_start'));
+  var years = date.difference(ee.Date('1970-01-01'), 'year');
+  
+  return image.addBands(image.metadata('system:time_start')
+    // Convert milliseconds from epoch to years to aid in
+    // interpretation of the following trend calculation.
+    .divide(1000 * 60 * 60 * 24 * 365)
+    .rename('time')) 
+};
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+// PROCESSING
+
+// map the viewing angle and scaling function
+var ic_MOD_LST_prep = MOD_LST.map(LSTmask)
+
+// map the time band function over the collection
+var ic_MOD_LST_time = ic_MOD_LST_prep.map(addTime);
+print('MOD_LST image first', ic_MOD_LST_time.first())
+
+
+
+//---------------------------------------------------------------------------------------------------------
+//-------------------------------------------Harmonic fit DAILY ----------------------------------------------
+
+
+// Names for the harmonic components
+var sincoefnames=ee.List.sequence(1, harmonics)
+    .map(function(n) { return ee.Number(n).int().format("sin%d")});
+var coscoefnames=ee.List.sequence(1, harmonics)
+    .map(function(n) { return ee.Number(n).int().format("cos%d")});
+
+// Names of the non-harmonic independent variables.
+var timevar=ee.String('t');
+var constant=ee.String('constant');
+
+// Name of the dependent variable
+var dependent = mod_LST_band;
+
+// This field contains UNIX time in milliseconds.
+var timeField = 'system:time_start';
+
+// Function to add variables for a constant, linear trend, and harmonic components (independents)
+var addIndVar = function(image) {
+  // Compute time in fractional years since the epoch.
+  var date = ee.Date(image.get(timeField));
+  var years = date.difference(ee.Date('1970-01-01'), 'year');
+  var timeRadians = ee.Image.constant(ee.List.sequence(1, harmonics)).multiply(years).multiply(2*Math.PI).float();
+  
+  var con = ee.Image.constant(1).updateMask(image.mask().select(0)); // .clip(image.geometry())
+  var cos = ee.Image(timeRadians).cos().updateMask(image.mask().select(0)); // .clip(image.geometry())
+  var sin = ee.Image(timeRadians).sin().updateMask(image.mask().select(0)); // .clip(image.geometry())
+  var yrs = ee.Image.constant(years).float().updateMask(image.mask().select(0)); // .clip(image.geometry())
+  
+  // Return the image with the added bands.
+  return ee.Image(image)
+    .addBands({srcImg: con, overwrite: true})
+    .addBands(yrs.rename('t'))
+    .addBands(cos.rename(coscoefnames))
+    .addBands(sin.rename(sincoefnames));
+};
+
+// Function to add LST (dependent) to the image
+var addDepVar = function(image) {
+  return image.select(dependent);
+};
+
+// Add dependent and independent variables and filter to the area of interest. 
+var ic_MOD_Var = ee.ImageCollection(ic_MOD_LST_prep)
+  .map(addDepVar)
+  .map(addIndVar);
+
+
+print('ic_MOD_Var first',ic_MOD_Var.first());
+print('Nr. of images for regression', ic_MOD_Var.size());
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Modelling
+
+// Concatenate independent variables.
+var harmonicIndependents = ee.List([constant]).add(timevar).add(sincoefnames).add(coscoefnames).flatten(); 
+
+// Regression of independent variables (constant, time, sin and cos coefficients) versus dependent (LST)
+var harmonicTrend = ic_MOD_Var
+  .select(harmonicIndependents.add(dependent))
+  .reduce(ee.Reducer.robustLinearRegression(2 + harmonics*2, 1, 20));
+// print(harmonicTrend);
+  
+// Convert the array image into a multi-band image of coefficients.
+var harmonicTrendCoefficients = harmonicTrend.select('coefficients')
+  .arrayProject([0])
+  .arrayFlatten([harmonicIndependents]);
+  
+print('harmonic Trend Coefficients', harmonicTrendCoefficients);
+
+// Compute fitted (harmonic model) values.
+var fittedHarmonic = ic_MOD_Var.map(function(image) {
+  var fit = image.select(harmonicIndependents)
+      .multiply(harmonicTrendCoefficients)
+      .reduce('sum')
+      .rename('fitted');
+  return image.addBands(fit)
+      .addBands(image.select(dependent).subtract(fit).pow(2).rename("error"));
+
+});
+
+// Plot the fitted model and the original data at the POI.
+if(plot_POI){
+  
+  print(Chart.image.series(fittedHarmonic.select([dependent,'fitted']), poi, ee.Reducer.mean(), 500)
+      .setSeriesNames([dependent, 'fitted'])
+      .setOptions({
+        title: 'Harmonic model: original and fitted values',
+        lineWidth: 1,
+        pointSize: 3,
+  }));
+}
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Extract variables (constant, trend, phase and amplitude).
+
+var LST_data_count = ee.Image(ic_MOD_Var.select([dependent]).count()) //.clip(aoi);
+var LST_constant = harmonicTrendCoefficients.select(constant) // .clip(aoi);
+var LST_trend = harmonicTrendCoefficients.select(timevar) // .clip(aoi);
+var sin = harmonicTrendCoefficients.select(sincoefnames);
+var cos = harmonicTrendCoefficients.select(coscoefnames);
+var LST_amplitude = cos.hypot(sin) // .clip(aoi);
+var LST_phase = sin.atan2(cos).unitScale(-Math.PI, Math.PI) // .clip(aoi); 
+var LST_rmse = fittedHarmonic.select("error").reduce(ee.Reducer.mean()).sqrt() // .clip(aoi);
+var LST_mean = fittedHarmonic.select(['fitted']).reduce(ee.Reducer.mean()) // .clip(aoi);
+
+
+//---------------------------------------------------------------------------------------------------------
+//-----------------------------------------------Visualization---------------------------------------------
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Visualization 
+
+if(plot_maps){
+  
+  // Visualize an individual image (i) from the image collection 
+  // var image = ee.Image(ic_MOD_Var.sort('system:time_start').toList(1,i).get(0))
+  // Map.addLayer(image, vizParams_LST, 'single image LST', false)
+
+  Map.addLayer(LST_trend, {min: minV, max: maxV, palette:palette_vik}, 'LinearTrend Harmonic Regression MOD_LST', false);
+  Map.addLayer(LST_data_count, {min:500, max:2000, palette:palette_Parula}, 'Data count MOD_LST', false);
+  Map.addLayer(LST_constant,{min:-20,max:20,palette: ['002f7c','246ee5','21cec5','FFA500', 'FFFF00']},'Harmonic constant', false);
+  Map.addLayer(LST_phase, {min:0, max:0.6, palette:palette_Parula}, 'Harmonic phase', false);
+  Map.addLayer(LST_amplitude, {min:0, max:1, palette:palette_Parula}, 'Harmonic amplitude', false);
+  Map.addLayer(LST_rmse, {min:0, max:0.1, palette:palette_Parula}, 'Harmonic rmse', false);
+  Map.addLayer(LST_mean, {min:0, max:1, palette:palette_Parula}, 'Harmonic LST mean', false);
+  /**/
+}
+
+
+if(export_maps){
+  
+  var scale = 1000;
+  var crs = 'EPSG:3857'
+  var folder_exp = 'eeExports'
+  
+ 
+  // Export data
+  var image_exp = LST_trend.reproject({crs: crs, scale: scale}).float();
+  var fname = fnamePrefix + '_LinearTrend_Harmonic_Regression'
+ 
+  Export.image.toDrive({
+    image: image_exp, 
+    description: fname, 
+    scale: scale,
+    region: aoi,
+    crs: crs,
+    fileNamePrefix: fname,
+    maxPixels:1e13,
+    folder: folder_exp,
+    });
+  
+  // Export data
+  var image_exp = LST_data_count.reproject({crs: crs, scale: scale}).float();
+  var fname = fnamePrefix + '_data_count'
+ 
+  Export.image.toDrive({
+    image: image_exp, 
+    description: fname, 
+    scale: scale,
+    region: aoi,
+    crs: crs,
+    fileNamePrefix: fname,
+    maxPixels:1e13,
+    folder: folder_exp,
+    });
+    
+    
+  // Export data
+  var image_exp = LST_constant.reproject({crs: crs, scale: scale}).float();
+  var fname = fnamePrefix + '_constant'
+ 
+  Export.image.toDrive({
+    image: image_exp, 
+    description: fname, 
+    scale: scale,
+    region: aoi,
+    crs: crs,
+    fileNamePrefix: fname,
+    maxPixels:1e13,
+    folder: folder_exp,
+    });
+    
+    
+  // Export data
+  var image_exp = LST_amplitude.reproject({crs: crs, scale: scale}).float();
+  var fname = fnamePrefix + '_amplitude'
+ 
+  Export.image.toDrive({
+    image: image_exp, 
+    description: fname, 
+    scale: scale,
+    region: aoi,
+    crs: crs,
+    fileNamePrefix: fname,
+    maxPixels:1e13,
+    folder: folder_exp,
+    });
+    
+    
+  // Export data
+  var image_exp = LST_phase.reproject({crs: crs, scale: scale}).float();
+  var fname = fnamePrefix + '_phase'
+ 
+  Export.image.toDrive({
+    image: image_exp, 
+    description: fname, 
+    scale: scale,
+    region: aoi,
+    crs: crs,
+    fileNamePrefix: fname,
+    maxPixels:1e13,
+    folder: folder_exp,
+    });  
+  
+  
+    
+  // Export data
+  var image_exp = LST_rmse.reproject({crs: crs, scale: scale}).float();
+  var fname = fnamePrefix + '_rmse'
+ 
+  Export.image.toDrive({
+    image: image_exp, 
+    description: fname, 
+    scale: scale,
+    region: aoi,
+    crs: crs,
+    fileNamePrefix: fname,
+    maxPixels:1e13,
+    folder: folder_exp,
+    });    
+  
+  // Export data
+  var image_exp = LST_mean.reproject({crs: crs, scale: scale}).float();
+  var fname = fnamePrefix + '_mean'
+ 
+  Export.image.toDrive({
+    image: image_exp, 
+    description: fname, 
+    scale: scale,
+    region: aoi,
+    crs: crs,
+    fileNamePrefix: fname,
+    maxPixels:1e13,
+    folder: folder_exp,
+    });    
+    
+    
+}  
 
