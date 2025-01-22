@@ -1,1 +1,8 @@
+The folder contains all the scripts used to extract the ESA CCI LC masks for disturbed and undisturbed areas, preprocess the LC masks, and generate various visualizations, including charts, transition matrices, bubble plots, and Sankey diagrams. These scripts play a crucial role in analyzing and visualizing land cover changes effectively.
 
+5.1. ESA CCI Land Cover Disturbed and Undisturbed Analysis (Extraction of Masks)
+5.2. ESA CCI Land Cover Conversion from NETCDF4 to GeoTIFF (Pre-Processing)
+5.3. ESA CCI LC Before and After Bar Chart (Graph)
+5.4. ESA CCI LC Transition Matrix (Table)
+5.5. ESA CCI LC-LST Bubble Plot (Graph)
+5.6. ESA CCI LC-LST Sankey Diagram (Graph)
