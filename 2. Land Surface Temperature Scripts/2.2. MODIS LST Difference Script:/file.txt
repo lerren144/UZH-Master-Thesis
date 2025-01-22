@@ -1,1 +1,1 @@
-The folder contains all the scripts used to combine the mosaicked MODIS LST product images using three methods: Combination 1: Linear Regression Equation, Combination 2: Average MODIS Terra Aqua Day, Combination 3: Average MODIS Terra Aqua Night.
+The folder contains all the scripts used to calculate the differences between the mosaicked MODIS LST product images: End Period and Start Period. 
