@@ -1,0 +1,12 @@
+All scripts in text file format was extracted from the google earth engine:
+
+1. MODIS LST and Visualization:
+
+1.1 MODIS LST Global Coverage
+https://code.earthengine.google.com/a4cc8f8b94e8bd6cfbb1b37854a200b1
+
+1.2 MODIS LST Divided Global Coverage
+https://code.earthengine.google.com/011b0909ddea608c5660b4cd632a9cfd
+
+1.3 MODIS Satellite Image Visualization
+https://code.earthengine.google.com/d0d4b84d72ef78c535e87151903e6cc9
